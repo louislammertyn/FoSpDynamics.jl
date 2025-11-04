@@ -121,8 +121,8 @@ function Bose_Hubbard_H(V::U1FockSpace, lattice::Lattice, J::Number=1., U::Numbe
     t_K = fill_nbody_tensor(t_K, lattice, (neighbour,))
     t_Int = fill_nbody_tensor(t_Int, lattice, (onsite,))
 
-    K = n_body_Op(V, lattice, t_K)
-    I = n_body_Op(V, lattice, t_Int)
+    K = nbody_Op(V, lattice, t_K)
+    I = nbody_Op(V, lattice, t_Int)
 
     return K, I
 end
@@ -146,11 +146,11 @@ Returns:
 - `Op_momentum`: MultipleFockOperator in momentum space
 """
 function momentum_space_Op(Op::MultipleFockOperator, lattice::Lattice, dimensions::Tuple)
-    tensors = extract_n_body_tensors(Op, lattice)
+    tensors = extract_nbody_tensors(Op, lattice)
     
     @assert (length(tensors)==2)
     for t in tensors
-        s = length(size(t))
+        s = t.domain + t.codomain
         @assert ( (s != 2) || (s!=4)) "Momentumspace functionality only defined for 1 body and 2 body operators"
         if s == 2
             real_tensor_2body = t 
@@ -196,6 +196,80 @@ function momentum_space_Op(Op::MultipleFockOperator, lattice::Lattice, dimension
 end
 
 
+"""
+This functionality implements operator transformations under either:
+
+1. Projections onto a subset of the total single particle Hilbert space, or
+2. Full unitary basis transformations on the many-body Fock operators.
+
+The transformations are of the form:
+
+    d†_α = Σ_i ϕ_i^α c†_i
+
+where ϕ_i^α=⟨i|ϕ^α⟩ are either:
+
+- The eigenstates |ϕ^α⟩ defining the subspace onto which one projects where one 
+  then assumes the projection on the subspace as c†_i ≈ Σ_α (ϕ_i^α)*d†_α, or
+- If they form an orthonormal set, the basis functions into which the Fock operators are transformed.
+
+The matrix encoding the projection or transformation is denoted as:
+
+    M_αi = φ_i^α
+
+Please note the the i index labels the vectorised modes of the system and α labels the eigenstates |ϕ^α>
+"""
+
+function transform(O::MultipleFockOperator, lattice::Lattice, modes::Matrix{ComplexF64})
+    if size(modes,1) == size(modes,2)
+        @assert isapprox(modes * modes', I, atol=1e-12)
+    end
+
+    V = O.terms[1].space
+    new_geometry = (size(modes,1),)
+    new_lattice = Lattice(new_geometry)
+    new_V = V isa UnrestrictedFockSpace ? UnrestrictedFockSpace(new_geometry, V.cutoff) :
+            V isa U1FockSpace         ? U1FockSpace(new_geometry, V.cutoff, V.particle_number) :
+            error("Unsupported Fock space type: $(typeof(V))")
+
+    tnsrs = extract_nbody_tensors(O, lattice)
+    new_tnsrs = Vector{ManyBodyTensor}()
+
+    for t_ in tnsrs
+        t_v = vectorize_tensor(t_, lattice).tensor
+
+        dom = t_.domain
+        codom = t_.codomain
+        N = dom + codom
+
+        # build index strings
+        old_tensor_indices = 1:N
+        new_tensor_indices = -1 .* (1:N)
+
+        tnsrs_prod = Vector{SparseArray}()
+        indices = Vector{Vector{Int64}}()
+        modes_sp = SparseArray(modes)
+
+        for i in 1:dom 
+            push!(tnsrs_prod, modes_sp)
+            push!(indices, [new_tensor_indices[i], old_tensor_indices[i]])
+        end
+        for i in dom+1:N
+            push!(tnsrs_prod, conj.(modes_sp))
+            push!(indices, [new_tensor_indices[i], old_tensor_indices[i]])
+        end
+        push!(tnsrs_prod, t_v)
+        push!(indices, old_tensor_indices)
+        
+
+        t_new_v = ncon(Tuple(tnsrs_prod), Tuple(indices))
+        t_new_v = ManyBodyTensor(t_new_v, new_V, dom, codom)
+
+        push!(new_tnsrs, t_new_v)
+
+    end
+
+    return construct_Multiple_Operator(new_V, new_lattice, new_tnsrs)
+end
 ############################################################
 # End of Fock operator utilities
 ############################################################

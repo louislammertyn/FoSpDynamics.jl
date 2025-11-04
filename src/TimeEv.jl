@@ -173,45 +173,6 @@ end
 # Generate a string representing the mean field code for integration
 # ==========================================================
 
-function generate_eom_string_expl(eoms::Vector{MultipleFockOperator})
-    eom_str = ""
-    for (i, eom) in enumerate(eoms)
-        eom_str *= "dψ[$i] .= "
-        for op in eom.terms
-            eom_str *= "$(op.coeff) * "
-            for f in op.product
-                eom_str *= f[2] ? "conj(ψ[$(f[1])]) * " : "ψ[$(f[1])] * "
-            end
-            eom_str = chop(eom_str, tail=3)
-            eom_str *= " + "
-        end
-        eom_str = chop(eom_str, tail=3)
-        eom_str *= " \n"
-    end
-    eom_str = chop(eom_str, tail=2)
-    return eom_str
-                  
-end
-
-function generate_eom_string_TO(eoms::Vector{MultipleFockOperator}, lattice::Lattice)
-    eom_str = ""
-    for (i, eom) in enumerate(eoms)
-        eom_str *= "dψ[$i] .= "
-        tensors = extract_nbody_tensors(eom, lattice)
-        for t in tensors
-            rank = length(size(t))
-            if rank == 0 
-                eom_str *= "$t"
-            end
-            t_index = join('a':'a'+(rank-1),",")
-            indices = split(t_index, ",")
-            eom_str *= a
-        end
-
-    end
-    eom_str = chop(eom_str, tail=2)
-    return eom_str
-end
 
 
 
@@ -225,11 +186,11 @@ function mean_field_TE(init::Vector{ComplexF64},
     eoms = Vector{MultipleFockOperator}()
     println("constructing eom...")
     for i in 1:nmodes
-        a_i = FockOperator(((i, false)), 0)
+        a_i = FockOperator(((i, false)), 0, V)
         push!(eoms, Heisenberg_eom(H, a_i))
     end
 
-    EOM!(dψ, ψ, t) = (generate_eom_string(eoms) |> Meta.parse |> eval ; nothing)
+    #EOM!(dψ, ψ, t) = (generate_eom_string(eoms) |> Meta.parse |> eval ; nothing)
 
     prob = ODEProblem(EOM!, init, tspan)
     sol = solve(prob, solver; reltol=rtol, abstol=atol, save_everystep=false, saveat=tpoints)

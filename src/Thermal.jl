@@ -1,0 +1,66 @@
+
+
+function thermal_ρ_matrix(H::MultipleFockOperator, β::Float64, lattice::Lattice)
+    mb_tnsrs = extract_nbody_tensors(H, lattice)
+    @assert (length(mb_tnsrs)==1) && (mb_tnsrs[1].domain + mb_tnsrs[1].codomain == 2) "Thermal state is only explicitely defined for single particle Hamiltonians"
+    
+    Ham = vectorize_tensor(mb_tnsrs[1], lattice)
+    @assert Ham == Ham' "H is not Hermitian"
+
+    es, vs = eigen(Hermitian(Ham))
+    exp_es = (es .* -1 * β)  .|>exp |> Diagonal
+    
+
+    Z = tr(exp_es)
+    ρ = vs * exp_es * vs' / Z
+    
+    @assert isapprox(ρ, ρ';atol=1e-9)
+    @assert all(real.(eigvals(ρ)) .>= -1e-12)
+    @assert isapprox(tr(ρ), 1.; atol=1e-9)
+    return ρ
+end
+
+function thermal_exp(ρ::Matrix{ComplexF64}, Op::Matrix{ComplexF64})
+    return tr(ρ * Op)
+end
+
+function Liouvillian_Super(Op::Matrix{ComplexF64})
+    I_n = Matrix{ComplexF64}(I, size(Op))
+    return  (Op ⊗ I_n) - (I_n ⊗ Transpose(Op))
+end
+
+function Time_Evolve_thermal_ρ_TD(init_ρ::Matrix{ComplexF64},
+                           ops_and_interps::Tuple{Vector{Matrix{ComplexF64}},Vector{T}},
+                           tspan::Tuple{Float64, Float64}, tpoints::NTuple{N, Float64};
+                           rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
+                           solver = Vern7()) where {T,N}
+    ρ_v = vec(init_ρ)
+
+    Liouvillians =Vector{Matrix{ComplexF64}}()
+    interps = Vector{T}()
+    
+    for (O, f) in zip(ops_and_interps...)
+        
+        push!(Liouvillians, Liouvillian_Super(O))
+        push!(interps, f)
+    end
+    Liouvillians_and_interps = (Liouvillians, interps)
+    sol = Time_Evolution_TD(ρ_v,
+                           Liouvillians_and_interps,
+                           tspan, tpoints;
+                           rtol=rtol, atol=atol,
+                           solver=solver)
+    return sol 
+end
+
+
+function Time_Evolution_thermal_ρ(init_ρ::Vector{ComplexF64}, H::AbstractMatrix{ComplexF64},
+                        tspan::Tuple{Float64, Float64};
+                        rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
+                        solver = Vern7())
+    L = Liouvillian_Super(H)
+    sol = Time_Evolution(init_ρ, H, tspan; rtol=rtol, atol=atol, solver=solver)
+    return sol
+end
+
+
