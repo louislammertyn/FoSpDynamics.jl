@@ -14,21 +14,24 @@ end
 
 ## set constants ##
 begin
-t_i, t_e= 0., 4.
-dt = 1e-3
-ts = t_i:dt:t_e
 ϕ = π/2
 ω = 2*π * 440
-Δ = 0.001 * ω
+Δ = 50
 ω_d = ω + Δ
-κ = 2 * Δ
+κ =  Δ
+
+T = 2*π / ω
+t_i, t_e= 0., 1.
+dt = 1e-3
+ts = t_i:dt:t_e
+
+
 E_ratio = compare_energies(ω, 100e-9)
-T = ω / E_ratio
-β = 1/ (T)
-L = 20
+Temp = ω / E_ratio
+β = 1/ (Temp)
+L = 10
 end;
-
-
+t_e
 ## define time dependency and initialise the interpolation functions for the time evolution ##
 begin
 f_t(ts) = κ .* cos.(ω_d .*ts.+ϕ) ;
@@ -40,6 +43,7 @@ interp_trivial(t) = 1.;
 strob_ts = tuple(collect(t_i:(2π/ω_d): t_e)...);
 save_ts = tuple(collect(t_i:(2π/ω_d)/(2): t_e)...);
 end;
+
 
 begin
 ## initialisation of lattice and hilbert space ##
@@ -104,7 +108,7 @@ ops = [H_onsite_m, Hop_m]
 
 sol = Time_Evolve_thermal_ρ_TD(ρ, (ops, interps), (t_i,t_e), save_ts; rtol = 1e-9, atol = 1e-9, solver = Vern7())
 end;
-sol
+
 ## Plot the solution ##
 begin
 pl = plot(
@@ -118,8 +122,22 @@ pl = plot(
 for s in eachindex(sol.t)[1:end]
     state = reshape(sol.u[s], (L, L))
     l_com = real(tr(state * Diagonal(0:(L-1))))
+    
+    x = x_matrix(L)
+    x_com = real(tr(state * x))
 
-    scatter!(pl, [sol.t[s]], [l_com], marker=:o, color=:blue, markersize=1)
+    #scatter!(pl, [sol.t[s]], [l_com], marker=:o, color=:blue, markersize=1)
+    scatter!(pl,  [sol.t[s]], [x_com], marker=:o, color=:red, markersize=1)
 end;
 display(pl)
 end;
+
+function x_matrix(N::Int)
+    x = zeros(Float64, N, N)
+    for n in 1:N-1
+        val = sqrt(n / 2)
+        x[n, n+1] = val
+        x[n+1, n] = val
+    end
+    return x
+end

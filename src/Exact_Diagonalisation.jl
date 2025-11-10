@@ -67,6 +67,7 @@ end
 function bounded_compositions(N::Int, L::Int, cutoff::Int; thread_threshold::Int=10_000)
     cutoff += 1
     max_i = cutoff^L  
+    nthreads = Threads.nthreads()
     
     if max_i < thread_threshold || Threads.nthreads() == 1
         # ---------------- Single-threaded version ----------------
@@ -79,11 +80,18 @@ function bounded_compositions(N::Int, L::Int, cutoff::Int; thread_threshold::Int
         end
     else
         # ---------------- Multithreaded version ----------------
-        thread_results = [Vector{Vector{Int}}() for _ in 1:Threads.nthreads()]
-        Threads.@threads for i in 0:max_i-1
-            n = digits(i, base=cutoff)
-            if sum(n) == N && length(n) <= L
-                push!(thread_results[Threads.threadid()], reverse(n))
+        thread_results = [Vector{Vector{Int}}() for _ in 1:nthreads]
+        blocksize = ceil(Int, max_i / nthreads)
+
+        Threads.@threads for t in 1:nthreads
+            start_i = (t-1) * blocksize
+            stop_i = min(t * blocksize-1, max_i-1)
+            
+            for i in start_i:stop_i
+                n = digits(i, base=cutoff)
+                if sum(n) == N && length(n) <= L
+                    push!(thread_results[t], reverse(n))
+                end
             end
         end
         results = reduce(vcat, thread_results)
