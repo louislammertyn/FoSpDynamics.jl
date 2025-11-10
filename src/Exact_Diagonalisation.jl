@@ -53,14 +53,15 @@ function all_states_U1_O(V::U1FockSpace)
             ns = MultipleFockState([ns])
         end
         for s_new in ns.states
-            if !(s_new.occupations in visited)
+            if  !(s_new.occupations in visited)
                 push!(visited, s_new.occupations)
                 push!(queue, s_new)
             end
         end
     end
     result::Vector{AbstractFockState} = [fock_state(V, collect(occs)) for occs in visited]
-    return result
+    sorted = sort(result, by=x -> Tuple(x.occupations), rev=true)
+    return sorted
 end
 
 
@@ -99,7 +100,7 @@ function bounded_compositions(N::Int, L::Int, cutoff::Int; thread_threshold::Int
 
     # Padding & sorting (shared by both paths)
     padded = results .|> x -> vcat(zeros(Int, L - length(x)), x)
-    sorted = sort(padded, by=x -> evalpoly(cutoff, x), rev=true)
+    sorted = sort(padded, by=x -> Tuple(x), rev=true)
     return sorted
 end
 
