@@ -5,6 +5,7 @@ using Reexport
 using LinearAlgebra
 using OrdinaryDiffEq
 using TensorOperations
+using SparseArrayKit
 using Kronecker
 
 include("./TimeEv.jl")
@@ -28,9 +29,9 @@ export Bose_Hubbard_H, delta, momentum_space_Op
 #####################################################################################################
 
 export all_states_U1, all_states_U1_O, bounded_compositions, basisFS
-export calculate_matrix_elements, calculate_matrix_elements_naive, calculate_matrix_elements_parallel
+export calculate_matrix_elements, calculate_matrix_elements_naive, calculate_matrix_elements_parallel, calculate_matrix_elements_parallel_sparse
 export tuple_vector_equal, sparseness, diagonalise_KR, MB_tensor, Entanglement_Entropy
-export transform
+export transform, reduce_terms
 
 #####################################################################################################
 #####################################################################################################

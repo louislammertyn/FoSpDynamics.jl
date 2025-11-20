@@ -1,6 +1,5 @@
 #include("C:/Users/loulamme/OneDrive - UGent/Documenten/Assistent ELIS/Code/synthdim/FockED/src/FockSpace.jl")
 using Revise
-using QuantumFockCore
 using QuantumFockDynamics
 using LinearAlgebra
 using Plots

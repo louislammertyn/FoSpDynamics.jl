@@ -197,6 +197,56 @@ function calculate_matrix_elements_parallel(states::Vector{AbstractFockState}, O
 end
 
 
+function calculate_matrix_elements_parallel_sparse(states::Vector{AbstractFockState},
+                                                   Ops::MultipleFockOperator)
+
+    n = length(states)
+    println("Calculating SPARSE matrix elements using $(Threads.nthreads()) threads.")
+
+    # Thread-local storage to avoid locking
+    local_I = [Int[] for _ in 1:Threads.nthreads()]
+    local_J = [Int[] for _ in 1:Threads.nthreads()]
+    local_V = [ComplexF64[] for _ in 1:Threads.nthreads()]
+
+    Threads.@threads for idx in 1:(n*n)
+        tid = Threads.threadid()
+
+        i = div(idx - 1, n) + 1
+        j = mod(idx - 1, n) + 1
+        bra = states[i]
+        ket = states[j]
+
+        total_ij = 0.0 + 0im
+        tmp = MutableFockState(ket)
+
+        for Op in Ops.terms
+            reset2!(tmp, ket.occupations, ket.coefficient)
+            apply!(Op, tmp)
+            tmp.iszero && continue
+
+            if tuple_vector_equal(bra.occupations, tmp.occupations)
+                total_ij += bra.coefficient' * tmp.coefficient
+            end
+        end
+
+        if total_ij != 0.0 + 0im
+            push!(local_I[tid], i)
+            push!(local_J[tid], j)
+            push!(local_V[tid], total_ij)
+        end
+    end
+
+    # Merge thread-local arrays
+    I = reduce(vcat, local_I)
+    J = reduce(vcat, local_J)
+    V = reduce(vcat, local_V)
+
+    # Construct sparse matrix
+    return sparse(I, J, V, n, n)
+end
+
+
+
 
 function calculate_matrix_elements_naive(states::Vector{AbstractFockState}, Op::AbstractFockOperator)
     Op_matrix = zeros(ComplexF64, length(states), length(states))

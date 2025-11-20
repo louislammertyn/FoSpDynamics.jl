@@ -31,7 +31,7 @@ Temp = ω / E_ratio
 β = 1/ (Temp)
 L = 10
 end;
-t_e
+β
 ## define time dependency and initialise the interpolation functions for the time evolution ##
 begin
 f_t(ts) = κ .* cos.(ω_d .*ts.+ϕ) ;
@@ -99,6 +99,7 @@ H_0 = Hop_m + H_onsite_m
 ρ = thermal_ρ_matrix(Hop + H_onsite, β, lattice)
 end;
 
+thermal_ρ_matrix(Hop + H_onsite, β, lattice)
 
 
 ## Time evolution where the lists indicate the time dependent functions and their corresponding operators ## 

@@ -270,6 +270,17 @@ function transform(O::MultipleFockOperator, lattice::Lattice, modes::Matrix{Comp
 
     return construct_Multiple_Operator(new_V, new_lattice, new_tnsrs)
 end
+
+
+function reduce_terms(Op::MultipleFockOperator, term_condition::Function)
+    reduced_Op = ZeroFockOperator()
+    for o in Op.terms
+        if term_condition(o)
+            reduced_Op += o 
+        end
+    end
+    return reduced_Op
+end
 ############################################################
 # End of Fock operator utilities
 ############################################################
