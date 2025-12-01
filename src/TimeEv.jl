@@ -211,8 +211,87 @@ function Unitary_Ev_TD(Ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple, ti::Float64,
 
         t += dt
     end
+
+    return U
 end
 
+function Unitary_Ev_Op(X::Matrix{ComplexF64}, H::Matrix{ComplexF64},
+                                    save_times::Vector{Float64}; ρ=false)
+    N = size(X,1)
+    tmp = similar(X)
+    t0 = 0.0
+    snapshots = Vector{Matrix{ComplexF64}}(undef, length(save_times))
+
+    for (i, t) in enumerate(save_times)
+        Δt = t - t0
+        U = exp(-1im * H * Δt)
+        Udag = adjoint(U)
+
+        if ρ
+            mul!(tmp, U, X)
+            mul!(X, tmp, Udag)
+        else
+            mul!(tmp, Udag, X)
+            mul!(X, tmp, U)
+        end
+
+        snapshots[i] = copy(X)
+        t0 = t
+    end
+
+    return snapshots
+end
+
+
+function Unitary_Ev_Op_TD(O::Matrix{ComplexF64}, Ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple, 
+                              tspan::Tuple{Float64,Float64}, dt::Float64, save_times::Vector{Float64}, ρ=false)
+    N = size(O,1)
+    U = Matrix{I, N, N}               # Initialize unitary
+    H_mid = similar(O)
+    U_step = similar(O)
+    tmp = similar(O)
+    
+    t = tspan[1]
+    save_index = 1
+    snapshots = Vector{Matrix{ComplexF64}}(undef, length(save_times))
+    times_recorded = Float64[]
+
+    while t < tspan[2] + 1e-12
+        # Construct midpoint Hamiltonian
+        fill!(H_mid, 0.0 + 0.0im)
+        for (H, f) in zip(Ops, f_ts)
+            H_mid .+= f(t + dt/2) * H
+        end
+
+        # Compute small-step unitary
+        U_step .= exp(-1im * H_mid * dt)
+
+        # Update full unitary: U = U_step * U
+        mul!(tmp, U_step, U)
+        U .= tmp
+
+        if ρ
+            # Update density matrix in-place: ρ -> U ρ U†
+            mul!(tmp, U, O)
+            mul!(O, tmp, adjoint(U))
+        else
+            # Update Operator in-place: O -> U† O  U
+            mul!(tmp, adjoint(U), O)
+            mul!(O, tmp, U)
+        end
+
+        t += dt
+
+        # Save snapshots if we passed the next save time
+        while save_index <= length(save_times) && t >= save_times[save_index] - dt/2
+            snapshots[save_index] = copy(O)  # store a copy
+            push!(times_recorded, save_times[save_index])
+            save_index += 1
+        end
+    end
+
+    return times_recorded, snapshots
+end
 
 # ==========================================================
 # Generate a string representing the mean field code for integration
