@@ -16,8 +16,18 @@ include("./Thermal.jl")
 #####################################################################################################
 #####################################################################################################
 
-export Time_Evolution_ED, Time_Evolution, Time_Evolution_TD, schrodinger!, schrodinger_TD!, Von_Neumann!
-export Unitary_Ev,  Unitary_Ev_TD, Unitary_Ev_Op, Unitary_Ev_Op_TD
+export Time_Evolution_ed,
+       Time_Evolution,
+       schrodinger!,
+       Time_Evolution_TD,
+       Time_Evolution_TD_VN,
+       schrodinger_TD!,
+       Heisenberg_eom,
+       Von_Neumann!,
+       Unitary_Ev,
+       Unitary_Ev_TD,
+       Unitary_Ev_Op,
+       Unitary_Ev_Op_TD
 
 #####################################################################################################
 #####################################################################################################
@@ -37,6 +47,12 @@ export transform, reduce_terms
 #####################################################################################################
 #####################################################################################################
 
-export thermal_ρ_matrix, thermal_exp, Liouvillian_Super
-export Time_Evolve_thermal_ρ_TD, Time_Evolution_thermal_ρ, Unitary_Ev_ρ_TD, Unitary_Ev_ρ
+export thermal_ρ_matrix,
+       thermal_exp,
+       Liouvillian_Super,
+       Time_Evolve_thermal_ρ_Liouv,
+       Time_Evolve_thermal_ρ_TD_Liouv,
+       Time_Evolution_thermal_ρ_TD_VN,
+       Unitary_Ev_ρ_TD,
+       Unitary_Ev_ρ
 end

@@ -29,32 +29,8 @@ function Liouvillian_Super(Op::Matrix{ComplexF64})
     return  (Op ⊗ I_n) - (I_n ⊗ Transpose(Op))
 end
 
-function Time_Evolve_thermal_ρ_TD_Liouv(init_ρ::Matrix{ComplexF64},
-                           ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple{T},
-                           tspan::Tuple{Float64, Float64}, tpoints::NTuple{N, Float64};
-                           rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
-                           solver = Vern7()) where {T,N}
-    ρ_v = vec(init_ρ)
 
-    Liouvillians =Vector{Matrix{ComplexF64}}()
-    
-    
-    for (O, f) in zip(ops_and_interps...)
-        
-        push!(Liouvillians, Liouvillian_Super(O))
-        push!(interps, f)
-    end
-    Liouvillians_and_interps = (Liouvillians, interps)
-    sol = Time_Evolution_TD(ρ_v,
-                           Liouvillians_and_interps,
-                           tspan, tpoints;
-                           rtol=rtol, atol=atol,
-                           solver=solver)
-    return sol 
-end
-
-
-function Time_Evolution_thermal_ρ_Liouv(init_ρ::Vector{ComplexF64}, H::AbstractMatrix{ComplexF64},
+function Time_Evolve_thermal_ρ_Liouv(init_ρ::Vector{ComplexF64}, H::AbstractMatrix{ComplexF64},
                         tspan::Tuple{Float64, Float64};
                         rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
                         solver = Vern7())
@@ -63,24 +39,23 @@ function Time_Evolution_thermal_ρ_Liouv(init_ρ::Vector{ComplexF64}, H::Abstrac
     return sol
 end
 
-function Time_Evolve_thermal_ρ_TD_VN(init_ρ::Matrix{ComplexF64},
-                           ops::Vector{Matrix{ComplexF64}}, f_ts::Vector{T},
+function Time_Evolve_thermal_ρ_TD_Liouv(init_ρ::Matrix{ComplexF64},
+                           ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple,
                            tspan::Tuple{Float64, Float64}, tpoints::NTuple{N, Float64};
                            rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
-                           solver = Vern7()) where {T,N}
+                           solver = Vern7()) where {N}
     ρ_v = vec(init_ρ)
 
     Liouvillians =Vector{Matrix{ComplexF64}}()
-    interps = Vector{T}()
+    
     
     for (O, f) in zip(ops_and_interps...)
-        
         push!(Liouvillians, Liouvillian_Super(O))
         push!(interps, f)
     end
     Liouvillians_and_interps = (Liouvillians, interps)
     sol = Time_Evolution_TD(ρ_v,
-                           Liouvillians_and_interps,
+                           Tuple(Liouvillians), f_ts,
                            tspan, tpoints;
                            rtol=rtol, atol=atol,
                            solver=solver)
@@ -88,21 +63,26 @@ function Time_Evolve_thermal_ρ_TD_VN(init_ρ::Matrix{ComplexF64},
 end
 
 
-function Time_Evolution_thermal_ρ_VN(init_ρ::Vector{ComplexF64}, H::AbstractMatrix{ComplexF64},
-                        tspan::Tuple{Float64, Float64};
-                        rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
-                        solver = Vern7())
-    init_ρ_v = vec(init_ρ)
-    sol = Time_Evolution_VN(init_ρ_v, H, tspan; rtol=rtol, atol=atol, solver=solver)
+function Time_Evolution_thermal_ρ_TD_VN(init_ρ::Matrix{ComplexF64},
+                           ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple,
+                           tspan::Tuple{Float64, Float64}, tpoints::NTuple{N, Float64};
+                           rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
+                           solver = Vern7()) where {N}
+    
+    sol = Time_Evolution_TD_VN(init_ρ,
+                           ops, f_ts,
+                           tspan, tpoints;
+                           rtol=rtol, atol=atol,
+                           solver=solver)
     return sol
 end
 
-function Unitary_Ev_ρ_TD(init_ρ::Matrix{ComplexF64}, ops::Vector{Matrix{ComplexF64}}, f_ts::Vector{T}, ti::Float64, te::Float64, dt::Float64)
+function Unitary_Ev_ρ_TD(init_ρ::Matrix{ComplexF64}, ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple, ti::Float64, te::Float64, dt::Float64)
     U = Unitary_Ev_TD(Ops, f_ts, ti, te, dt)
-    return U * ρ * U'
+    return U * init_ρ * U'
 end
 
 function Unitary_Ev_ρ(init_ρ::Matrix{ComplexF64}, H::Matrix{ComplexF64}, ti::Float64, te::Float64, dt::Float64)
     U = Unitary_Ev_TD(Ops, f_ts, ti, te, dt)
-    return U * ρ * U'
+    return U * init_ρ * U'
 end

@@ -131,6 +131,16 @@ function Time_Evolution_TD(init::Vector{ComplexF64},
     return sol
 end
 
+function Time_Evolution_TD_VN(init::Vector{ComplexF64},
+                           ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple{T},
+                           tspan::Tuple{Float64, Float64}, tpoints::NTuple{N, Float64};
+                           rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
+                           solver = Vern7()) where {T,N}
+    prob = ODEProblem(Von_Neumann!, init, tspan, (similar(init), ops, f_ts))
+    sol = solve(prob, solver; reltol=rtol, abstol=atol, save_everystep=false, saveat=tpoints)
+    return sol
+end
+
 # ==========================================================
 # Time-dependent RHS for ODEProblem (DifferentialEquations.jl)
 # ==========================================================
