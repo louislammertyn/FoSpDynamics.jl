@@ -16,7 +16,7 @@ include("./Thermal.jl")
 #####################################################################################################
 #####################################################################################################
 
-export Time_Evolution_ED, Time_Evolution, Time_Evolution_TD, schrodinger!, schrodinger_TD!
+export Time_Evolution_ED, Time_Evolution, Time_Evolution_TD, schrodinger!, schrodinger_TD!, Von_Neumann!,  Unitary_Ev,  Unitary_Ev_TD
 
 #####################################################################################################
 #####################################################################################################
@@ -37,5 +37,5 @@ export transform, reduce_terms
 #####################################################################################################
 
 export thermal_ρ_matrix, thermal_exp, Liouvillian_Super
-export Time_Evolve_thermal_ρ_TD, Time_Evolution_thermal_ρ
+export Time_Evolve_thermal_ρ_TD, Time_Evolution_thermal_ρ, Unitary_Ev_ρ_TD, Unitary_Ev_ρ
 end

@@ -29,8 +29,42 @@ function Liouvillian_Super(Op::Matrix{ComplexF64})
     return  (Op ⊗ I_n) - (I_n ⊗ Transpose(Op))
 end
 
-function Time_Evolve_thermal_ρ_TD(init_ρ::Matrix{ComplexF64},
-                           ops_and_interps::Tuple{Vector{Matrix{ComplexF64}},Vector{T}},
+function Time_Evolve_thermal_ρ_TD_Liouv(init_ρ::Matrix{ComplexF64},
+                           ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple{T},
+                           tspan::Tuple{Float64, Float64}, tpoints::NTuple{N, Float64};
+                           rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
+                           solver = Vern7()) where {T,N}
+    ρ_v = vec(init_ρ)
+
+    Liouvillians =Vector{Matrix{ComplexF64}}()
+    
+    
+    for (O, f) in zip(ops_and_interps...)
+        
+        push!(Liouvillians, Liouvillian_Super(O))
+        push!(interps, f)
+    end
+    Liouvillians_and_interps = (Liouvillians, interps)
+    sol = Time_Evolution_TD(ρ_v,
+                           Liouvillians_and_interps,
+                           tspan, tpoints;
+                           rtol=rtol, atol=atol,
+                           solver=solver)
+    return sol 
+end
+
+
+function Time_Evolution_thermal_ρ_Liouv(init_ρ::Vector{ComplexF64}, H::AbstractMatrix{ComplexF64},
+                        tspan::Tuple{Float64, Float64};
+                        rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
+                        solver = Vern7())
+    L = Liouvillian_Super(H)
+    sol = Time_Evolution(init_ρ, H, tspan; rtol=rtol, atol=atol, solver=solver)
+    return sol
+end
+
+function Time_Evolve_thermal_ρ_TD_VN(init_ρ::Matrix{ComplexF64},
+                           ops::Vector{Matrix{ComplexF64}}, f_ts::Vector{T},
                            tspan::Tuple{Float64, Float64}, tpoints::NTuple{N, Float64};
                            rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
                            solver = Vern7()) where {T,N}
@@ -54,13 +88,21 @@ function Time_Evolve_thermal_ρ_TD(init_ρ::Matrix{ComplexF64},
 end
 
 
-function Time_Evolution_thermal_ρ(init_ρ::Vector{ComplexF64}, H::AbstractMatrix{ComplexF64},
+function Time_Evolution_thermal_ρ_VN(init_ρ::Vector{ComplexF64}, H::AbstractMatrix{ComplexF64},
                         tspan::Tuple{Float64, Float64};
                         rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
                         solver = Vern7())
-    L = Liouvillian_Super(H)
-    sol = Time_Evolution(init_ρ, H, tspan; rtol=rtol, atol=atol, solver=solver)
+    init_ρ_v = vec(init_ρ)
+    sol = Time_Evolution_VN(init_ρ_v, H, tspan; rtol=rtol, atol=atol, solver=solver)
     return sol
 end
 
+function Unitary_Ev_ρ_TD(init_ρ::Matrix{ComplexF64}, ops::Vector{Matrix{ComplexF64}}, f_ts::Vector{T}, ti::Float64, te::Float64, dt::Float64)
+    U = Unitary_Ev_TD(Ops, f_ts, ti, te, dt)
+    return U * ρ * U'
+end
 
+function Unitary_Ev_ρ(init_ρ::Matrix{ComplexF64}, H::Matrix{ComplexF64}, ti::Float64, te::Float64, dt::Float64)
+    U = Unitary_Ev_TD(Ops, f_ts, ti, te, dt)
+    return U * ρ * U'
+end

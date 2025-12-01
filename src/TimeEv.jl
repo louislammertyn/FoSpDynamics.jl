@@ -122,12 +122,11 @@ Returns:
 - `sol`: solution object from DifferentialEquations.jl
 """
 function Time_Evolution_TD(init::Vector{ComplexF64},
-                           ops_and_interps::Tuple{Vector{Matrix{ComplexF64}},
-                                                  Vector{T}},
+                           ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple{T},
                            tspan::Tuple{Float64, Float64}, tpoints::NTuple{N, Float64};
                            rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
                            solver = Vern7()) where {T,N}
-    prob = ODEProblem(schrodinger_TD!, init, tspan, ops_and_interps)
+    prob = ODEProblem(schrodinger_TD!, init, tspan, (similar(init), ops, f_ts))
     sol = solve(prob, solver; reltol=rtol, abstol=atol, save_everystep=false, saveat=tpoints)
     return sol
 end
@@ -148,18 +147,17 @@ Arguments:
 - `ops_and_interps`: tuple of (operator matrices, interpolation functions)
 - `t`: current time
 """
-function schrodinger_TD!(dψ::Vector{ComplexF64}, ψ::Vector{ComplexF64},
-                         ops_and_interps::Tuple{Vector{<:AbstractMatrix{ComplexF64}},
-                                                Vector{T}}, 
-                         t::Float64) where T
-    Ops, interps = ops_and_interps
-    @inbounds for i in eachindex(dψ)
-        dψ[i] = 0.0 + 0im   # reset derivative vector
-    end
+function schrodinger_TD!(dψ, ψ, (tmp, Ops, interps), t)
+    fill!(dψ, 0)
+
     @inbounds for k in eachindex(Ops)
-        fk_t = ComplexF64(interps[k](t))   # evaluate coefficient at time t
-        dψ .+= -1im * fk_t * (Ops[k] * ψ)
+        fk = interps[k](t)
+        mul!(tmp, Ops[k], ψ)
+        @inbounds @simd for i in eachindex(dψ)
+            dψ[i] -= im * fk * tmp[i]
+        end
     end
+
     return nothing
 end
 
@@ -169,6 +167,53 @@ function Heisenberg_eom(H::AbstractFockOperator, O::AbstractFockOperator)
     return 1im * RHS
 end
 
+function Von_Neumann!(dψ, ψ, (tmp, Ops, f_ts), t)
+    O = reshape(ψ, size(Ops[1]))
+    dO = reshape(dψ, size(Ops[1]))
+    fill!(dO, zero(ComplexF64)) 
+
+    for (H, f) in zip(Ops, f_ts)
+        α = f(t)
+        mul!(tmp, H, O)
+        dO .+= α * tmp 
+        mul!(tmp, O, H)
+        dO .-= α * tmp 
+    end
+    dO *= -1im
+    return nothing
+end
+
+function Unitary_Ev(H::Matrix{ComplexF64}, ti::Float64, te::Float64)
+    U = exp(-1im * H * (te-ti))
+    return U  
+end
+
+function Unitary_Ev_TD(Ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple, ti::Float64, te::Float64, dt::Float64)
+    U = Matrix{I, size(Ops[1])...}
+    H_mid = similar(U)
+    U_step = similar(U)
+    tmp = similar(U)
+
+    t = ti
+
+    while t < te 
+        fill!(H_mid, 0.0 + 0.0im)
+        for (H, f) in zip(Ops, f_ts)
+            H_mid .+= f(t + dt/2) * H
+        end
+
+        # compute U_step = exp(-i H_mid dt)
+        U_step .= exp(-1im * H_mid * dt)
+
+        # U = U_step * U, in-place via mul!
+        mul!(tmp, U_step, U)
+        U .= tmp
+
+        t += dt
+    end
+end
+
+
 # ==========================================================
 # Generate a string representing the mean field code for integration
 # ==========================================================
@@ -176,26 +221,7 @@ end
 
 
 
-function mean_field_TE(init::Vector{ComplexF64},
-                        H::MultipleFockOperator,
-                        tspan::Tuple{Float64, Float64}, tpoints::NTuple{N, Float64};
-                        rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
-                        solver = Vern7()) where {N}
-    V = H.space
-    nmodes = prod(collect(V.geometry))
-    eoms = Vector{MultipleFockOperator}()
-    println("constructing eom...")
-    for i in 1:nmodes
-        a_i = FockOperator(((i, false)), 0, V)
-        push!(eoms, Heisenberg_eom(H, a_i))
-    end
 
-    #EOM!(dψ, ψ, t) = (generate_eom_string(eoms) |> Meta.parse |> eval ; nothing)
-
-    prob = ODEProblem(EOM!, init, tspan)
-    sol = solve(prob, solver; reltol=rtol, abstol=atol, save_everystep=false, saveat=tpoints)
-    return sol 
-end
 
 
 
