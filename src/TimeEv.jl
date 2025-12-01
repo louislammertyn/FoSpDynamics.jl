@@ -293,9 +293,7 @@ function Unitary_Ev_Op_TD(O::Matrix{ComplexF64}, Ops::Tuple{Matrix{ComplexF64}},
     return times_recorded, snapshots
 end
 
-# ==========================================================
-# Generate a string representing the mean field code for integration
-# ==========================================================
+
 
 
 
