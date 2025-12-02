@@ -122,20 +122,20 @@ Returns:
 - `sol`: solution object from DifferentialEquations.jl
 """
 function Time_Evolution_TD(init::Vector{ComplexF64},
-                           ops::NTuple{N, Matrix{ComplexF64}}, f_ts::NTuple{N, T},
+                           ops::NTuple{N, Matrix{ComplexF64}}, f_ts::Tuple{Vararg{<:Function, N}},
                            tspan::Tuple{Float64, Float64}, tpoints::NTuple{M, Float64};
                            rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
-                           solver = Vern7()) where {T,N, M}
+                           solver = Vern7()) where {N, M}
     prob = ODEProblem(schrodinger_TD!, init, tspan, (similar(init), ops, f_ts))
     sol = solve(prob, solver; reltol=rtol, abstol=atol, save_everystep=false, saveat=tpoints)
     return sol
 end
 
 function Time_Evolution_TD_VN(init::Vector{ComplexF64},
-                           ops::NTuple{N, Matrix{ComplexF64}}, f_ts::NTuple{N, T},
+                           ops::NTuple{N, Matrix{ComplexF64}}, f_ts::Tuple{Vararg{<:Function, N}},
                            tspan::Tuple{Float64, Float64}, tpoints::NTuple{M, Float64};
                            rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
-                           solver = Vern7()) where {T,N, M}
+                           solver = Vern7()) where {N, M}
     prob = ODEProblem(Von_Neumann!, init, tspan, (similar(init), ops, f_ts))
     sol = solve(prob, solver; reltol=rtol, abstol=atol, save_everystep=false, saveat=tpoints)
     return sol
@@ -198,7 +198,7 @@ function Unitary_Ev(H::Matrix{ComplexF64}, ti::Float64, te::Float64)
     return U  
 end
 
-function Unitary_Ev_TD(Ops::NTuple{N, Matrix{ComplexF64}}, f_ts::NTuple{N, T}, ti::Float64, te::Float64, dt::Float64) where {N, T}
+function Unitary_Ev_TD(Ops::NTuple{N, Matrix{ComplexF64}}, f_ts::Tuple{Vararg{<:Function, N}}, ti::Float64, te::Float64, dt::Float64) where {N}
     U = Matrix{I, size(Ops[1])...}
     H_mid = similar(U)
     U_step = similar(U)
@@ -253,8 +253,8 @@ function Unitary_Ev_Op(X::Matrix{ComplexF64}, H::Matrix{ComplexF64},
 end
 
 
-function Unitary_Ev_Op_TD(O::Matrix{ComplexF64}, Ops::NTuple{N, Matrix{ComplexF64}}, f_ts::NTuple{N, T}, 
-                              tspan::Tuple{Float64,Float64}, dt::Float64, save_times::NTuple{M, Float64}, ρ=false) where {T,N,M}
+function Unitary_Ev_Op_TD(O::Matrix{ComplexF64}, Ops::NTuple{N, Matrix{ComplexF64}}, f_ts::Tuple{Vararg{<:Function, N}}, 
+                              tspan::Tuple{Float64,Float64}, dt::Float64, save_times::NTuple{M, Float64}, ρ=false) where {N,M}
     s = size(O,1)
     U = Matrix{I, s, s}               # Initialize unitary
     H_mid = similar(O)
