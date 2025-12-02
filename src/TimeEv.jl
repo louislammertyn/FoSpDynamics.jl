@@ -131,7 +131,7 @@ function Time_Evolution_TD(init::Vector{ComplexF64},
     return sol
 end
 
-function Time_Evolution_TD_VN(init::Vector{ComplexF64},
+function Time_Evolution_TD_VN(init::Matrix{ComplexF64},
                            ops::NTuple{N, Matrix{ComplexF64}}, f_ts::Tuple{Vararg{<:Function, N}},
                            tspan::Tuple{Float64, Float64}, tpoints::NTuple{M, Float64};
                            rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
@@ -199,7 +199,7 @@ function Unitary_Ev(H::Matrix{ComplexF64}, ti::Float64, te::Float64)
 end
 
 function Unitary_Ev_TD(Ops::NTuple{N, Matrix{ComplexF64}}, f_ts::Tuple{Vararg{<:Function, N}}, ti::Float64, te::Float64, dt::Float64) where {N}
-    U = Matrix{I, size(Ops[1])...}
+    U = I
     H_mid = similar(U)
     U_step = similar(U)
     tmp = similar(U)
@@ -255,15 +255,15 @@ end
 
 function Unitary_Ev_Op_TD(O::Matrix{ComplexF64}, Ops::NTuple{N, Matrix{ComplexF64}}, f_ts::Tuple{Vararg{<:Function, N}}, 
                               tspan::Tuple{Float64,Float64}, dt::Float64, save_times::NTuple{M, Float64}, ρ=false) where {N,M}
-    s = size(O,1)
-    U = Matrix{I, s, s}               # Initialize unitary
+    
+    U = I        # Initialize unitary
     H_mid = similar(O)
     U_step = similar(O)
     tmp = similar(O)
     
     t = tspan[1]
     save_index = 1
-    snapshots = Vector{Matrix{ComplexF64}}(undef, length(save_times))
+    snapshots = Vector{Matrix{ComplexF64}}(undef, M)
     times_recorded = Float64[]
 
     while t < tspan[2] + 1e-12

@@ -30,12 +30,12 @@ function Liouvillian_Super(Op::Matrix{ComplexF64})
 end
 
 
-function Time_Evolution_thermal_ρ_Liouv(init_ρ::Vector{ComplexF64}, H::AbstractMatrix{ComplexF64},
+function Time_Evolution_thermal_ρ_Liouv(init_ρ::Matrix{ComplexF64}, H::AbstractMatrix{ComplexF64},
                         tspan::Tuple{Float64, Float64};
                         rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
                         solver = Vern7())
     L = Liouvillian_Super(H)
-    sol = Time_Evolution(init_ρ, H, tspan; rtol=rtol, atol=atol, solver=solver)
+    sol = Time_Evolution(vec(init_ρ), H, tspan; rtol=rtol, atol=atol, solver=solver)
     return sol
 end
 
