@@ -49,7 +49,7 @@ function Time_Evolve_thermal_ρ_TD_Liouv(init_ρ::Matrix{ComplexF64},
     Liouvillians =Vector{Matrix{ComplexF64}}()
     
     
-    for (O, f) in zip(ops_and_interps...)
+    for (O, f) in zip(ops, f_ts)
         push!(Liouvillians, Liouvillian_Super(O))
         push!(interps, f)
     end
@@ -78,11 +78,11 @@ function Time_Evolution_thermal_ρ_TD_VN(init_ρ::Matrix{ComplexF64},
 end
 
 function Unitary_Ev_ρ_TD(init_ρ::Matrix{ComplexF64}, ops::Tuple{Matrix{ComplexF64}}, f_ts::Tuple, ti::Float64, te::Float64, dt::Float64)
-    U = Unitary_Ev_TD(Ops, f_ts, ti, te, dt)
+    U = Unitary_Ev_TD(ops, f_ts, ti, te, dt)
     return U * init_ρ * U'
 end
 
 function Unitary_Ev_ρ(init_ρ::Matrix{ComplexF64}, H::Matrix{ComplexF64}, ti::Float64, te::Float64, dt::Float64)
-    U = Unitary_Ev_TD(Ops, f_ts, ti, te, dt)
+    U = Unitary_Ev(H, ti, te)
     return U * init_ρ * U'
 end
