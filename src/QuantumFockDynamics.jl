@@ -50,8 +50,8 @@ export transform, reduce_terms
 export thermal_ρ_matrix,
        thermal_exp,
        Liouvillian_Super,
-       Time_Evolve_thermal_ρ_Liouv,
-       Time_Evolve_thermal_ρ_TD_Liouv,
+       Time_Evolution_thermal_ρ_Liouv,
+       Time_Evolution_thermal_ρ_TD_Liouv,
        Time_Evolution_thermal_ρ_TD_VN,
        Unitary_Ev_ρ_TD,
        Unitary_Ev_ρ

@@ -30,7 +30,7 @@ function Liouvillian_Super(Op::Matrix{ComplexF64})
 end
 
 
-function Time_Evolve_thermal_ρ_Liouv(init_ρ::Vector{ComplexF64}, H::AbstractMatrix{ComplexF64},
+function Time_Evolution_thermal_ρ_Liouv(init_ρ::Vector{ComplexF64}, H::AbstractMatrix{ComplexF64},
                         tspan::Tuple{Float64, Float64};
                         rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
                         solver = Vern7())
@@ -39,7 +39,7 @@ function Time_Evolve_thermal_ρ_Liouv(init_ρ::Vector{ComplexF64}, H::AbstractMa
     return sol
 end
 
-function Time_Evolve_thermal_ρ_TD_Liouv(init_ρ::Matrix{ComplexF64},
+function Time_Evolution_thermal_ρ_TD_Liouv(init_ρ::Matrix{ComplexF64},
                            ops::NTuple{N, Matrix{ComplexF64}}, f_ts::Tuple{Vararg{<:Function, N}},
                            tspan::Tuple{Float64, Float64}, tpoints::NTuple{M, Float64};
                            rtol::Float64 = 1e-9, atol::Float64 = 1e-9,
