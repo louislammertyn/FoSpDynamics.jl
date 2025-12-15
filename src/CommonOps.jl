@@ -104,8 +104,8 @@ Constructs the kinetic and interaction parts of the Bose-Hubbard Hamiltonian:
 - `Int`: on-site interaction term H_U
 """
 function Bose_Hubbard_H(V::U1FockSpace, lattice::Lattice, J::Number=1., U::Number=1.)
-    t_K = ManyBodyTensor(ComplexF64, V, 1, 1)
-    t_Int = ManyBodyTensor(ComplexF64, V, 2, 2)
+    t_K = ManyBodyTensor_init(ComplexF64, V, 1, 1)
+    t_Int = ManyBodyTensor_init(ComplexF64, V, 2, 2)
 
     NN = lattice.NN
 

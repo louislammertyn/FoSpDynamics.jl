@@ -178,18 +178,25 @@ function Heisenberg_eom(H::AbstractFockOperator, O::AbstractFockOperator)
 end
 
 function Von_Neumann!(dψ, ψ, (tmp, Ops, f_ts), t)
-    O = reshape(ψ, size(Ops[1]))
-    dO = reshape(dψ, size(Ops[1]))
-    fill!(dO, zero(ComplexF64)) 
+    N = size(Ops[1], 1)
+    O = reshape(ψ, N, N)          # read-only view of ψ
+    fill!(tmp, 0.0 + 0.0im)       # tmp buffer N×N
+    fill!(dψ, 0.0 + 0.0im)        # clear dψ vector
 
     for (H, f) in zip(Ops, f_ts)
         α = f(t)
+        
+        # compute H*O
         mul!(tmp, H, O)
-        dO .+= α * tmp 
+        
+        dψ .+= α * tmp    # flatten to vector
+
+        # compute O*H
         mul!(tmp, O, H)
-        dO .-= α * tmp 
+        dψ .-= α * tmp
     end
-    dO *= -1im
+
+    dψ .*= -1im
     return nothing
 end
 
@@ -199,7 +206,10 @@ function Unitary_Ev(H::Matrix{ComplexF64}, ti::Float64, te::Float64)
 end
 
 function Unitary_Ev_TD(Ops::NTuple{N, Matrix{ComplexF64}}, f_ts::Tuple{Vararg{<:Function, N}}, ti::Float64, te::Float64, dt::Float64) where {N}
-    U = I
+    U = zeros(ComplexF64, size(Ops[1])...)
+    for i in 1:size(U, 1)
+        U[i,i] = one(ComplexF64)
+    end
     H_mid = similar(U)
     U_step = similar(U)
     tmp = similar(U)
@@ -256,7 +266,10 @@ end
 function Unitary_Ev_Op_TD(O::Matrix{ComplexF64}, Ops::NTuple{N, Matrix{ComplexF64}}, f_ts::Tuple{Vararg{<:Function, N}}, 
                               tspan::Tuple{Float64,Float64}, dt::Float64, save_times::NTuple{M, Float64}, ρ=false) where {N,M}
     
-    U = I        # Initialize unitary
+    U = zeros(ComplexF64, size(O)...)
+    for i in 1:size(U, 1)
+        U[i,i] = one(ComplexF64)
+    end
     H_mid = similar(O)
     U_step = similar(O)
     tmp = similar(O)
@@ -295,7 +308,7 @@ function Unitary_Ev_Op_TD(O::Matrix{ComplexF64}, Ops::NTuple{N, Matrix{ComplexF6
         # Save snapshots if we passed the next save time
         while save_index <= length(save_times) && t >= save_times[save_index] - dt/2
             snapshots[save_index] = copy(O)  # store a copy
-            push!(times_recorded, save_times[save_index])
+            push!(times_recorded, t)
             save_index += 1
         end
     end

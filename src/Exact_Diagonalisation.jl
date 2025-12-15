@@ -1,31 +1,56 @@
 begin
 
-############## 1. generating states ####################
+############## Matrix elements calculations ####################
 
+function calculate_matrix_elements( Ops::MultipleFockOperator, basis::Vector{AbstractFockState})
+    s = MutableFockVector(MutableFockState.(basis))
 
+    buf1 = MutableFockState(basis[1])
+    buf2 = MutableFockState(basis[1])
 
+    D = length(basis)
+    if D > 5000
+        # Use sparse
+        matrix = spzeros(ComplexF64, D, D)
+    else
+        # Use dense
+        matrix = zeros(ComplexF64, D, D)
+    end
+    for v in s.vector 
+        for o_term in Ops.terms 
+            op_str = o_term.product
+            L = length(op_str)
+            if op_str[L][2]
+                ad_j!(buf1, v, op_str[L][1])
+            else
+                a_j!(buf1, v, op_str[L][1])
+            end
+            for i in (L-1):-1:1
+                if op_str[i][2]
+                    ad_j!(buf2, buf1, op_str[i][1])
+                else
+                    a_j!(buf2, buf1, op_str[i][1])
+                end
+                
+                buf1.occupations .= buf2.occupations                
+                buf1.coefficient = buf2.coefficient
+                buf1.iszero = buf2.iszero
 
-function calculate_matrix_elements(states::Vector{AbstractFockState}, Ops::MultipleFockOperator)
-    Op_matrix = zeros(ComplexF64, length(states), length(states))
-    tmp = MutableFockState(states[1])
-    
-    for (i,bra) in enumerate(states), (j,ket) in enumerate(states)  
-        total_ij = 0.0 + 0im
-        for Op in Ops.terms
-            reset2!(tmp, ket.occupations, ket.coefficient)                 
-            apply!(Op, tmp)   
-            if tuple_vector_equal(bra.occupations, tmp.occupations)
-                total_ij += bra.coefficient' * tmp.coefficient
+                if buf1.iszero
+                    break
+                end
+            end
+            if buf1.iszero
+                continue
+            else
+                idcolumn = s.basis[key_from_occup(buf2.occupations, v.space.cutoff)] 
+                idrow = s.basis[key_from_occup(v.occupations, v.space.cutoff)]
+                matrix[idrow, idcolumn] += o_term.coefficient * buf2.coefficient
             end
         end
-        if total_ij != 0. + 0im
-            Op_matrix[i,j] = total_ij
-        end
-    
     end
-    return Op_matrix
+    return matrix
 end
-
 
 function tuple_vector_equal(t::NTuple{N,Int}, v::Vector{Int}) where N
     @inbounds for i in 1:N
@@ -44,95 +69,7 @@ function tuple_vector_equal(t::NTuple{N,Int}, v::Vector{UInt8}) where N
     return true
 end
 
-function calculate_matrix_elements_parallel(states::Vector{AbstractFockState}, Ops::MultipleFockOperator)
-    n = length(states)
-    Op_matrix = zeros(ComplexF64, n, n)
-    println("Calculating matrix elements using $(Threads.nthreads()) threads.")
-    Threads.@threads for idx in 1:(n*n)
-        i = div(idx - 1, n) + 1
-        j = mod(idx - 1, n) + 1
-        bra = states[i]
-        ket = states[j]
-        total_ij = 0.0 + 0im
-        tmp = MutableFockState(ket)
-        
-        for Op in Ops.terms
-            reset2!(tmp, ket.occupations, ket.coefficient)
-            apply!(Op, tmp)
 
-            tmp.iszero && continue
-
-            tuple_vector_equal(bra.occupations, tmp.occupations) && (
-                total_ij += bra.coefficient' * tmp.coefficient
-            )
-            
-        end
-
-        total_ij != 0. + 0im && (Op_matrix[i, j] = total_ij)
-
-    end
-    return Op_matrix
-end
-
-
-function calculate_matrix_elements_parallel_sparse(states::Vector{AbstractFockState},
-                                                   Ops::MultipleFockOperator)
-
-    n = length(states)
-    println("Calculating SPARSE matrix elements using $(Threads.nthreads()) threads.")
-
-    # Thread-local storage to avoid locking
-    local_I = [Int[] for _ in 1:Threads.nthreads()]
-    local_J = [Int[] for _ in 1:Threads.nthreads()]
-    local_V = [ComplexF64[] for _ in 1:Threads.nthreads()]
-
-    Threads.@threads for idx in 1:(n*n)
-        tid = Threads.threadid()
-
-        i = div(idx - 1, n) + 1
-        j = mod(idx - 1, n) + 1
-        bra = states[i]
-        ket = states[j]
-
-        total_ij = 0.0 + 0im
-        tmp = MutableFockState(ket)
-
-        for Op in Ops.terms
-            reset2!(tmp, ket.occupations, ket.coefficient)
-            apply!(Op, tmp)
-            tmp.iszero && continue
-
-            if tuple_vector_equal(bra.occupations, tmp.occupations)
-                total_ij += bra.coefficient' * tmp.coefficient
-            end
-        end
-
-        if total_ij != 0.0 + 0im
-            push!(local_I[tid], i)
-            push!(local_J[tid], j)
-            push!(local_V[tid], total_ij)
-        end
-    end
-
-    # Merge thread-local arrays
-    I = reduce(vcat, local_I)
-    J = reduce(vcat, local_J)
-    V = reduce(vcat, local_V)
-
-    # Construct sparse matrix
-    return sparse(I, J, V, n, n)
-end
-
-
-
-
-function calculate_matrix_elements_naive(states::Vector{AbstractFockState}, Op::AbstractFockOperator)
-    Op_matrix = zeros(ComplexF64, length(states), length(states))
-    for (i,bra) in enumerate(states), (j,ket) in enumerate(states)  
-        Op_matrix[i,j] = bra * (Op * ket)   
-    end
-    return Op_matrix
-end
 
 function sparseness(M::Matrix{ComplexF64})
     s = 0

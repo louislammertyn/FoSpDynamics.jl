@@ -49,16 +49,16 @@ function Time_Evolution_thermal_ρ_TD_Liouv(init_ρ::Matrix{ComplexF64},
     Liouvillians =Vector{Matrix{ComplexF64}}()
     
     
-    for (O, f) in zip(ops, f_ts)
+    for O in ops
         push!(Liouvillians, Liouvillian_Super(O))
-        push!(interps, f)
     end
-    Liouvillians_and_interps = (Liouvillians, interps)
+    
     sol = Time_Evolution_TD(ρ_v,
                            Tuple(Liouvillians), f_ts,
                            tspan, tpoints;
                            rtol=rtol, atol=atol,
                            solver=solver)
+    
     return sol 
 end
 
