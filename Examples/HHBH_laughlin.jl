@@ -1,6 +1,6 @@
 using LinearAlgebra, Plots, ProgressMeter
 using Revise
-using QuantumFockDynamics
+using FoSpDynamics
 
 # Model structure #
 geometry = (8, 8)

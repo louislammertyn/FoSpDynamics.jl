@@ -1,7 +1,7 @@
-module QuantumFockDynamics
+module FoSpDynamics
 
 using Reexport
-@reexport using QuantumFockCore
+@reexport using FoSpCore
 using LinearAlgebra
 using OrdinaryDiffEq
 using TensorOperations

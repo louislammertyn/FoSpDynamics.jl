@@ -1,5 +1,5 @@
 using Revise
-using FockSpace
+using FoSpDynamics
 using Test
 using LinearAlgebra
 using Plots

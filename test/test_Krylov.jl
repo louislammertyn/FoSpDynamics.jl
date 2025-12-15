@@ -1,5 +1,5 @@
 using Revise
-using FockSpace, VectorInterface, KrylovKit
+using FoSpDynamics, VectorInterface, KrylovKit
 
 N = 5
 geometry = (3,)

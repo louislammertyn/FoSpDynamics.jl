@@ -1,5 +1,5 @@
 using Revise
-using FockSpace
+using FoSpDynamics
 using LinearAlgebra
 using Plots, ColorSchemes
 using ProgressMeter

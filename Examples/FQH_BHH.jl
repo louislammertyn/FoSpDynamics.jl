@@ -2,7 +2,7 @@
 # in the groundstate of the 2D Bose-Hubbard-Hofstadter model
 
 using Revise
-using FockSpace
+using FoSpDynamics
 using LinearAlgebra
 using Plots
 using ProgressMeter

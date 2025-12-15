@@ -1,5 +1,5 @@
 using Revise
-using QuantumFockDynamics
+using FoSpDynamics
 using LinearAlgebra
 using Plots
 using ProgressMeter

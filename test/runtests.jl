@@ -1,9 +1,9 @@
 using Revise
-using QuantumFockDynamics
+using FoSpDynamics
 using Test
 
 
-@testset "QuantumFockDynamics.jl" begin
+@testset "FoSpDynamics.jl" begin
     # Write your tests here.
 end
 bounded_compositions(5, 5, 3)

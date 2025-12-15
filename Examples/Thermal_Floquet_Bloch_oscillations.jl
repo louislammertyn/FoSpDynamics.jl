@@ -1,6 +1,5 @@
 using Revise
-using QuantumFockCore
-using QuantumFockDynamics
+using FoSpDynamics
 using Plots
 using Interpolations
 using LinearAlgebra
