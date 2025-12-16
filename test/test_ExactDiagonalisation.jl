@@ -1,5 +1,5 @@
 using Revise
-using QuantumFockDynamics, LinearAlgebra
+using FoSpDynamics, LinearAlgebra
 
 L = 15
 geometry = (L,)
